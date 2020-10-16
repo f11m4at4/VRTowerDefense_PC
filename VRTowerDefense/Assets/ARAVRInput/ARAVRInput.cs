@@ -1,9 +1,16 @@
 ﻿#define PC
 //#define Oculus
 //#define Vive
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR;
+
+#if Vive
+using Valve.VR;
+#endif
+
 public static class ARAVRInput
 {
 #if PC
@@ -15,28 +22,42 @@ public static class ARAVRInput
 #endif
 
 #if PC
-    public enum ButtonPC
+    public enum ButtonTarget
     {
         Fire1,
         Fire2,
         Fire3,
+    }
+#elif Vive
+    public enum ButtonTarget
+    {
+        Teleport,
+        InteractUI,
+        GrabGrip,
+        Jump,
     }
 #endif
 
     public enum Button
     {
 #if PC
-        One = ButtonPC.Fire1,
-        Two = ButtonPC.Fire2,
-        Thumbstick = ButtonPC.Fire1,
-        IndexTrigger = ButtonPC.Fire3,
-        HandTrigger = ButtonPC.Fire2
+        One = ButtonTarget.Fire1,
+        Two = ButtonTarget.Fire2,
+        Thumbstick = ButtonTarget.Fire1,
+        IndexTrigger = ButtonTarget.Fire3,
+        HandTrigger = ButtonTarget.Fire2
 #elif Oculus
         One = OVRInput.Button.One,
         Two = OVRInput.Button.Two,
         Thumbstick = OVRInput.Button.PrimaryThumbstick,
         IndexTrigger = OVRInput.Button.PrimaryIndexTrigger,
         HandTrigger = OVRInput.Button.PrimaryHandTrigger
+#elif Vive
+        One = ButtonTarget.InteractUI,
+        Two = ButtonTarget.Jump,
+        Thumbstick = ButtonTarget.Teleport,
+        IndexTrigger = ButtonTarget.InteractUI,
+        HandTrigger = ButtonTarget.GrabGrip,
 #endif
     }
 
@@ -48,8 +69,12 @@ public static class ARAVRInput
 #elif Oculus
         LTouch = OVRInput.Controller.LTouch,
         RTouch = OVRInput.Controller.RTouch
+#elif Vive
+        LTouch = SteamVR_Input_Sources.LeftHand,
+        RTouch = SteamVR_Input_Sources.RightHand,
 #endif
     }
+
 
 #if Oculus
     static Transform GetTransform()
@@ -61,6 +86,16 @@ public static class ARAVRInput
 
         return rootTransform;
     }
+#elif Vive
+    static Transform GetTransform()
+    {
+        if (rootTransform == null)
+        {
+            rootTransform = GameObject.Find("[CameraRig]").transform;
+        }
+
+        return rootTransform;
+    }
 #endif
 
     public static Vector3 RHandPosition
@@ -68,26 +103,26 @@ public static class ARAVRInput
         get
         {
 #if PC
-            /*
+            /* 같은 결과를 볼 수 있다.
             Plane plane = new Plane(Vector3.up, 0);
             Ray r = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (plane.Raycast(r, out distance))
             {
                 return r.GetPoint(distance);
-
             }
             */
             Vector3 pos = Input.mousePosition;
             pos.z = Camera.main.nearClipPlane + 0.01f;
             pos = Camera.main.ScreenToWorldPoint(pos);
 
-            
-
             return pos;
 #elif Oculus
             Vector3 pos = OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
             pos = GetTransform().TransformPoint(pos);
-            return pos;                
+            return pos;
+#elif Vive
+            Vector3 pos = RHand.position;
+            return pos;
 #endif
         }
     }
@@ -102,6 +137,9 @@ public static class ARAVRInput
 #elif Oculus
             Vector3 direction = OVRInput.GetLocalControllerRotation(OVRInput.Controller.RTouch) * Vector3.forward;
             direction = GetTransform().TransformDirection(direction);
+            return direction;
+#elif Vive
+            Vector3 direction = RHand.forward;
             return direction;
 #endif
         }
@@ -128,7 +166,10 @@ public static class ARAVRInput
 #elif Oculus
             Vector3 pos = OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
             pos = GetTransform().TransformPoint(pos);
-            return pos;                
+            return pos;
+#elif Vive
+            Vector3 pos = LHand.position;
+            return pos;
 #endif
         }
     }
@@ -144,6 +185,9 @@ public static class ARAVRInput
             Vector3 direction = OVRInput.GetLocalControllerRotation(OVRInput.Controller.LTouch) * Vector3.forward;
             direction = GetTransform().TransformDirection(direction);
             return direction;
+#elif Vive
+            Vector3 direction = LHand.forward;
+            return direction;
 #endif
         }
     }
@@ -153,89 +197,172 @@ public static class ARAVRInput
     public static Transform LHand
     {
 
-#if PC
         get
         {
-            if(lHand == null)
+            if (lHand == null)
             {
+#if PC
                 GameObject handObj = new GameObject("LHand");
                 lHand = handObj.transform;
                 lHand.position = LHandPosition;
                 lHand.forward = LHandDirection;
                 lHand.parent = Camera.main.transform;
-            }
-            return lHand;
-        }
 #elif Oculus
-        get
-        {
-            if (lHand == null)
-            {
                 lHand = GameObject.Find("LeftControllerAnchor").transform;
+#elif Vive
+                lHand = GameObject.Find("Controller (left)").transform;
+#endif
             }
             return lHand;
         }
-#endif
 
     }
 
     public static Transform RHand
     {
 
-#if PC
         get
         {
             if (rHand == null)
             {
+#if PC
                 GameObject handObj = new GameObject("RHand");
                 rHand = handObj.transform;
                 rHand.position = RHandPosition;
                 rHand.forward = RHandDirection;
                 rHand.parent = Camera.main.transform;
-            }
-            return rHand;
-        }
 #elif Oculus
-        get
-        {
-            if (rHand == null)
-            {
                 rHand = GameObject.Find("RightControllerAnchor").transform;
+#elif Vive
+                rHand = GameObject.Find("Controller (right)").transform;
+#endif
             }
             return rHand;
         }
-#endif
-
     }
 
     public static bool Get(Button virtualMask, Controller hand = Controller.RTouch)
     {
 #if PC
-        return Input.GetButton(((ButtonPC)virtualMask).ToString());
+        return Input.GetButton(((ButtonTarget)virtualMask).ToString());
 #elif Oculus
         return OVRInput.Get((OVRInput.Button)virtualMask, (OVRInput.Controller)hand);
+#elif Vive
+        //return SteamVR_Actions._default.Teleport.state;
+        return SteamVR_Input.GetState(((ButtonTarget)virtualMask).ToString(), (SteamVR_Input_Sources)(hand));
 #endif
     }
 
     public static bool GetDown(Button virtualMask, Controller hand = Controller.RTouch)
     {
 #if PC
-        //Debug.Log("button : " + ((ButtonPC)virtualMask).ToString());
-        return Input.GetButtonDown(((ButtonPC)virtualMask).ToString());
+        return Input.GetButtonDown(((ButtonTarget)virtualMask).ToString());
 #elif Oculus
         return OVRInput.GetDown((OVRInput.Button)virtualMask, (OVRInput.Controller)hand);
+#elif Vive
+        //return SteamVR_Actions._default.Teleport.stateDown;
+        return SteamVR_Input.GetStateDown(((ButtonTarget)virtualMask).ToString(), (SteamVR_Input_Sources)(hand));
 #endif
     }
 
     public static bool GetUp(Button virtualMask, Controller hand = Controller.RTouch)
     {
 #if PC
-        return Input.GetButtonUp(((ButtonPC)virtualMask).ToString());
+        return Input.GetButtonUp(((ButtonTarget)virtualMask).ToString());
 #elif Oculus
         return OVRInput.GetUp((OVRInput.Button)virtualMask, (OVRInput.Controller)hand);
+#elif Vive
+        //return SteamVR_Actions._default.Teleport.stateUp;
+        return SteamVR_Input.GetStateUp(((ButtonTarget)virtualMask).ToString(), (SteamVR_Input_Sources)(hand));
 #endif
     }
 
+    public static float GetAxis(string axis, Controller hand = Controller.LTouch)
+    {
+#if PC
+        return Input.GetAxis(axis);
+#elif Oculus
+        if (axis == "Horizontal")
+        {
+            return OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, (OVRInput.Controller)hand).x;
+        }
+        else
+        {
+            return OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, (OVRInput.Controller)hand).y;
+        }
+#elif Vive
+        if (axis == "Horizontal")
+        {
+            return SteamVR_Input.GetVector2("TouchPad", (SteamVR_Input_Sources)(hand)).x;
+        }
+        else
+        {
+            return SteamVR_Input.GetVector2("TouchPad", (SteamVR_Input_Sources)(hand)).y;
+        }
+#endif
+    }
+
+    // 진동 호출 하기
+    public static void PlayVibration(Controller hand)
+    {
+#if PC
+
+#elif Oculus
+        PlayVibration(0.06f, 1, 1, hand);
+#elif Vive
+        PlayVibration(0.06f, 160, 0.5f, hand);
+#endif
+    }
+
+    // 진동호출하기
+    // waitTime : 지속시간, duration : 반복횟수(시간), frequency : 빈도, amplify : 진폭, hand : 왼쪽 혹은 오른쪽 컨트롤러
+    public static void PlayVibration(float duration, float frequency, float amplitude, Controller hand)
+    {
+#if PC
+
+#elif Oculus
+        if (CoroutineInstance.coroutineInstance == null)
+        {
+            GameObject coroutineObj = new GameObject("CoroutineInstance");
+            coroutineObj.AddComponent<CoroutineInstance>();
+        }
+        CoroutineInstance.coroutineInstance.StartCoroutine(VibrationCoroutine(duration, frequency, amplitude, hand));
+#elif Vive
+        SteamVR_Actions._default.Haptic.Execute(0, duration, frequency, amplitude, (SteamVR_Input_Sources)hand);
+#endif
+    }
+
+#if Oculus
+    static IEnumerator VibrationCoroutine(float duration, float frequency, float amplitude, Controller hand)
+    {
+        OVRInput.SetControllerVibration(frequency, amplitude, (OVRInput.Controller)hand);
+        yield return new WaitForSeconds(duration);
+        OVRInput.SetControllerVibration(0, 0, (OVRInput.Controller)hand);
+    }
+#endif
+
+    // 카메라가 바라보는 방향을 기준으로 센터를 잡는다.
+    public static void Recenter()
+    {
+#if Oculus
+        OVRManager.display.RecenterPose();
+#elif Vive
+        List<XRInputSubsystem> subsystems = new List<XRInputSubsystem>();
+        SubsystemManager.GetInstances<XRInputSubsystem>(subsystems);
+        for (int i = 0; i < subsystems.Count; i++)
+        {
+            subsystems[i].TrySetTrackingOriginMode(TrackingOriginModeFlags.TrackingReference);
+            subsystems[i].TryRecenter();
+        }
+
+#endif
+    }
+
+    // 원하는 방향으로 타겟의 센터를 설정
+    public static void Recenter(Transform target, Vector3 direction)
+    {
+        target.forward = target.rotation * direction;
+    }
 
 #if PC
     static Vector3 originScale = Vector3.one * 0.02f;
@@ -244,7 +371,7 @@ public static class ARAVRInput
 #endif
     public static void DrawCrosshair(Transform crosshair, bool isHand = true, Controller hand = Controller.RTouch)
     {
-        if(crosshair == null)
+        if (crosshair == null)
         {
             return;
         }
@@ -256,7 +383,7 @@ public static class ARAVRInput
 #if PC
             ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 #else
-            if(hand == Controller.RTouch)
+            if (hand == Controller.RTouch)
             {
                 ray = new Ray(RHandPosition, RHandDirection);
             }
@@ -290,30 +417,17 @@ public static class ARAVRInput
             crosshair.localScale = originScale * Mathf.Max(1, distance);
         }
     }
+}
 
-    // 진동 호출 하기
-    static AudioClip vibrationClip = null;
-    public static void PlayVibration(Controller hand)
+class CoroutineInstance : MonoBehaviour
+{
+    public static CoroutineInstance coroutineInstance = null;
+    private void Awake()
     {
-#if PC
-
-#elif Oculus
-
-#elif Vive
-
-#endif
-    }
-
-    // 진동호출하기
-    // duration : 반복횟수, frequency : 지속시간, amplify : 진동크기, hand : 왼쪽 혹은 오른쪽 컨트롤러
-    public static void PlayVibration(int duration, int frequency, int amplify, Controller hand)
-    {
-#if PC
-
-#elif Oculus
-
-#elif Vive
-
-#endif
+        if (coroutineInstance == null)
+        {
+            coroutineInstance = this;
+        }
+        DontDestroyOnLoad(gameObject);
     }
 }
