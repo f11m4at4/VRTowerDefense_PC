@@ -10,9 +10,6 @@ public class Gun : MonoBehaviour
     ParticleSystem bulletEffect;	// 총알 파편 ParticleSystem
     AudioSource bulletAudio;    // 총알 발사 사운드
 
-    Transform explosion;	// drone 폭발 효과
-    ParticleSystem explosionEffect;	// 폭발
-
     public Transform crosshair;	// crosshair 를 위한 속성
 
     void Start()
@@ -21,12 +18,6 @@ public class Gun : MonoBehaviour
         bulletEffect = bulletImpact.GetComponent<ParticleSystem>();
         // 총알 효과 오디오소스 컴포넌트 가져오기
         bulletAudio = bulletImpact.GetComponent<AudioSource>();
-
-        // 폭발 효과 있을 때 파티클시스템 컴포넌트 가져오기
-        if (explosion)
-        {
-            explosionEffect = explosion.GetComponent<ParticleSystem>();
-        }
     }
     void Update()
     {
@@ -34,7 +25,7 @@ public class Gun : MonoBehaviour
         ARAVRInput.DrawCrosshair(crosshair);
 
         // 사용자가 IndexTrigger 버튼을 누르면
-        if (ARAVRInput.GetDown(ARAVRInput.Button.IndexTrigger))
+        if (ARAVRInput.GetDown(ARAVRInput.Button.One))
         {
             // 컨트롤러의 진동 재생
             ARAVRInput.PlayVibration(ARAVRInput.Controller.RTouch);
@@ -67,21 +58,11 @@ public class Gun : MonoBehaviour
                 // ray 와 부딪힌 객체가 drone 이라면 폭발효과 처리
                 if (hitInfo.transform.name.Contains("Drone"))
                 {
-                    // 폭발 효과가 있다면
-                    if (explosion)
+                    DroneAI drone = hitInfo.transform.GetComponent<DroneAI>();
+                    if(drone)
                     {
-                        // 드론위치에 폭발효과 놓기
-                        explosion.position = hitInfo.transform.position;
-                        // 폭발 효과 재생
-                        explosionEffect.Stop();
-                        explosionEffect.Play();
-                        // 폭발 오디오 재생
-                        explosion.GetComponent<AudioSource>().Stop();
-                        explosion.GetComponent<AudioSource>().Play();
-
+                        drone.OnDamageProcess();
                     }
-                    // 드론 제거
-                    Destroy(hitInfo.transform.gameObject);
                 }
 
             }

@@ -59,10 +59,14 @@
     <Compile Include="Assets\Scripts\TeleportCurve.cs" />
     <Compile Include="Assets\ARAScripts\CamRotate.cs" />
     <Compile Include="Assets\Test.cs" />
+    <Compile Include="Assets\Scripts\Tower.cs" />
     <Compile Include="Assets\Scripts\TeleportStraight.cs" />
     <Compile Include="Assets\Scripts\PlayerMove.cs" />
     <Compile Include="Assets\Scripts\GrabObject.cs" />
+    <Compile Include="Assets\Scripts\DroneAI.cs" />
+    <Compile Include="Assets\Scripts\DroneManager.cs" />
     <Compile Include="Assets\Scripts\Gun.cs" />
+    <Compile Include="Assets\Scripts\Bomb.cs" />
   </ItemGroup>
   <ItemGroup>
      <None Include="Assets\tdassets\etc\WC_Terrain\Assets\Mud_020\Description.xml" />
