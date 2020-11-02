@@ -64,8 +64,8 @@ public static class ARAVRInput
     public enum Controller
     {
 #if PC
-        LTouch = 0,
-        RTouch = 1
+        LTouch,
+        RTouch
 #elif Oculus
         LTouch = OVRInput.Controller.LTouch,
         RTouch = OVRInput.Controller.RTouch
@@ -98,6 +98,7 @@ public static class ARAVRInput
     }
 #endif
 
+    // 오른쪽 컨트롤러의 위치 얻어오기
     public static Vector3 RHandPosition
     {
         get
@@ -111,8 +112,11 @@ public static class ARAVRInput
                 return r.GetPoint(distance);
             }
             */
+            // 마우스의 스크린좌표 얻어오기
             Vector3 pos = Input.mousePosition;
-            pos.z = Camera.main.nearClipPlane + 0.01f;
+            // z 값은 카메라의 near 값으로 할당
+            pos.z = Camera.main.nearClipPlane;
+            // 스크린 좌표를 월드좌표로 변환
             pos = Camera.main.ScreenToWorldPoint(pos);
 
             return pos;
@@ -127,6 +131,7 @@ public static class ARAVRInput
         }
     }
 
+    // 오른쪽 컨트롤러의 방향 얻어오기
     public static Vector3 RHandDirection
     {
         get
@@ -145,6 +150,7 @@ public static class ARAVRInput
         }
     }
 
+    // 왼쪽 컨트롤러의 위치 얻어오기
     public static Vector3 LHandPosition
     {
         get
@@ -159,8 +165,11 @@ public static class ARAVRInput
 
             }
             */
+            // 마우스의 스크린좌표 얻어오기
             Vector3 pos = Input.mousePosition;
-            pos.z = Camera.main.nearClipPlane + 0.01f;
+            // z 값은 카메라의 near 값으로 할당
+            pos.z = Camera.main.nearClipPlane;
+            // 스크린 좌표를 월드좌표로 변환
             pos = Camera.main.ScreenToWorldPoint(pos);
             return pos;
 #elif Oculus
@@ -174,6 +183,7 @@ public static class ARAVRInput
         }
     }
 
+    // 왼쪽 컨트롤러의 방향얻어오기
     public static Vector3 LHandDirection
     {
         get
@@ -192,20 +202,30 @@ public static class ARAVRInput
         }
     }
 
+    // 왼쪽 컨트롤러
     static Transform lHand;
+    // 오른쪽 컨트롤러
     static Transform rHand;
+
+    // 씬에 등록된 왼쪽 컨트롤러 찾아서 반환
     public static Transform LHand
     {
 
         get
         {
+            // 만약 lHand 에 값이 없을경우
             if (lHand == null)
             {
 #if PC
+                // LHand 이름으로 게임오브젝트를 만든다.
                 GameObject handObj = new GameObject("LHand");
+                // 만들어진 객체의 트렌스폼을 lHand 에 할당
                 lHand = handObj.transform;
+                // 컨트롤러의 위치값으로 lHand 객체의 위치를 할당
                 lHand.position = LHandPosition;
+                // 컨트롤러가 향하는 방향을 LHandDirection 으로 할당
                 lHand.forward = LHandDirection;
+                // 컨트롤러를 카메라의 자식 객체로 등록
                 lHand.parent = Camera.main.transform;
 #elif Oculus
                 lHand = GameObject.Find("LeftControllerAnchor").transform;
@@ -217,19 +237,25 @@ public static class ARAVRInput
         }
 
     }
-
+    // 씬에 등록된 오른쪽 컨트롤러 찾아서 반환
     public static Transform RHand
     {
 
         get
         {
+            // 만약 rHand 에 값이 없을경우
             if (rHand == null)
             {
 #if PC
+                // RHand 이름으로 게임오브젝트를 만든다.
                 GameObject handObj = new GameObject("RHand");
+                // 만들어진 객체의 트렌스폼을 rHand 에 할당
                 rHand = handObj.transform;
+                // 컨트롤러의 위치값으로 rHand 객체의 위치를 할당
                 rHand.position = RHandPosition;
+                // 컨트롤러가 향하는 방향을 RHandPosition 으로 할당
                 rHand.forward = RHandDirection;
+                // 컨트롤러를 카메라의 자식 객체로 등록
                 rHand.parent = Camera.main.transform;
 #elif Oculus
                 rHand = GameObject.Find("RightControllerAnchor").transform;
@@ -241,9 +267,11 @@ public static class ARAVRInput
         }
     }
 
+    // 컨트롤러의 특정 버튼을 누르고 있는 동안 true 를 반환
     public static bool Get(Button virtualMask, Controller hand = Controller.RTouch)
     {
 #if PC
+        // virtualMask 에 들어온 값을 ButtonTarget 타입으로 변환하여 전달한다.
         return Input.GetButton(((ButtonTarget)virtualMask).ToString());
 #elif Oculus
         return OVRInput.Get((OVRInput.Button)virtualMask, (OVRInput.Controller)hand);
@@ -253,6 +281,7 @@ public static class ARAVRInput
 #endif
     }
 
+    // 컨트롤러의 특정 버튼을 눌렀을 때 true 를 반환
     public static bool GetDown(Button virtualMask, Controller hand = Controller.RTouch)
     {
 #if PC
@@ -264,6 +293,7 @@ public static class ARAVRInput
         return SteamVR_Input.GetStateDown(((ButtonTarget)virtualMask).ToString(), (SteamVR_Input_Sources)(hand));
 #endif
     }
+    // 컨트롤러의 특정 버튼을 눌렀다 떼었을 때 true 를 반환
 
     public static bool GetUp(Button virtualMask, Controller hand = Controller.RTouch)
     {
@@ -277,6 +307,8 @@ public static class ARAVRInput
 #endif
     }
 
+    // 컨트롤러의 Axis 입력을 반환
+    // axis : Horizontal, Vertical 값을 갖는다.
     public static float GetAxis(string axis, Controller hand = Controller.LTouch)
     {
 #if PC
@@ -302,25 +334,21 @@ public static class ARAVRInput
 #endif
     }
 
-    // 진동 호출 하기
+    // 컨트롤러에 진동 호출 하기
     public static void PlayVibration(Controller hand)
     {
-#if PC
-
-#elif Oculus
+#if Oculus
         PlayVibration(0.06f, 1, 1, hand);
 #elif Vive
         PlayVibration(0.06f, 160, 0.5f, hand);
 #endif
     }
 
-    // 진동호출하기
+    // 컨트롤러에 진동 호출 하기
     // waitTime : 지속시간, duration : 반복횟수(시간), frequency : 빈도, amplify : 진폭, hand : 왼쪽 혹은 오른쪽 컨트롤러
     public static void PlayVibration(float duration, float frequency, float amplitude, Controller hand)
     {
-#if PC
-
-#elif Oculus
+#if Oculus
         if (CoroutineInstance.coroutineInstance == null)
         {
             GameObject coroutineObj = new GameObject("CoroutineInstance");
@@ -369,13 +397,11 @@ public static class ARAVRInput
 #else
     static Vector3 originScale = Vector3.one * 0.005f;
 #endif
+
+    // 광선 레이가 닿는 곳에 크로스헤어를 위치시키고 싶다.
     public static void DrawCrosshair(Transform crosshair, bool isHand = true, Controller hand = Controller.RTouch)
     {
-        if (crosshair == null)
-        {
-            return;
-        }
-
+        // 1. 광선 레이 만들기
         Ray ray;
         // 컨트롤러의 위치와 방향을 이용하여 Ray 제작
         if (isHand)
@@ -395,6 +421,7 @@ public static class ARAVRInput
         }
         else
         {
+            // 카메라 기준으로 화면의 정 중앙으로 Ray 를 제작
             ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
         }
         // 눈에 안보이는 Plane 을 만든다.
@@ -419,6 +446,7 @@ public static class ARAVRInput
     }
 }
 
+// ARAVRInput 클래에서 사용할 코루틴 객체
 class CoroutineInstance : MonoBehaviour
 {
     public static CoroutineInstance coroutineInstance = null;
